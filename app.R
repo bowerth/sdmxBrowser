@@ -1,4 +1,5 @@
 ## devtools::install_github("rstudio/shinydashboard")
+## shiny::runGitHub(repo = "sdmxBrowser", username = "bowerth")
 
 ## app.R ##
 library(shiny)
@@ -31,3 +32,4 @@ server <- function(input, output) {
 }
 
 shinyApp(ui, server)
+
