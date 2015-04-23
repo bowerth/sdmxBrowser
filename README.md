@@ -1,4 +1,4 @@
 # sdmxBrowser
 UI for RJSDMX
 
-[sdmxBrowser](assets/sdmxBrowser.png)
+![sdmxBrowser screenshot](assets/sdmxBrowser.png)
