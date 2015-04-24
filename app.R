@@ -7,6 +7,7 @@ library(shinydashboard)
 library(RJSDMX)
 library(reshape2)
 library(ggplot2)
+library(ISOweek)
 
 output <- NULL
 
@@ -78,9 +79,9 @@ browseflows.input <- box(
 browseflows.output <- box(width = 8,
   verbatimTextOutput("summary1")
   ,
-  plotOutput("plot1", height = 350)
-  ,
   dataTableOutput("table1")
+  ,
+  plotOutput("plot1", height = 350)
   )
 
 body <- dashboardBody(
@@ -295,7 +296,8 @@ output$uisB_query <- renderUI({
   })
 
   queryDataFreq <- reactive({
-    frequency(queryData()[[1]])
+    ## frequency(queryData()[[1]])
+    attr(queryData()[[1]], "FREQ")
   })
 
   queryDataMelt <- reactive({
@@ -321,11 +323,20 @@ output$uisB_query <- renderUI({
 
     if (sdmxbrowser_flow=="") return()
 
-    if (queryDataFreq==12) {
+    if (is.null(queryDataFreq)) { # Frequency is NULL. Irregular timeseries defined
+      return()
+    } else if (queryDataFreq=="W") {
+      ## see https://github.com/bowerth/sdmxBrowser/issues/2
+      ## Handling dates in form YYYY-WW
+      data.plots$time <- ISOweek2date(paste0(data.plots$time, "-1"))
+    ## } else if (queryDataFreq==12) {
+    } else if (queryDataFreq=="M") {
         data.plots$time <- as.Date(as.yearmon(data.plots$time, format = "%b %Y"))
-    } else if (queryDataFreq==4) {
+    ## } else if (queryDataFreq==4) {
+    } else if (queryDataFreq=="Q") {
         data.plots$time <- as.Date(as.yearqtr(data.plots$time))
-    } else if (queryDataFreq==1) {
+    ## } else if (queryDataFreq==1) {
+    } else if (queryDataFreq=="A") {
         data.plots$time <- as.Date(paste0(data.plots$time, '-01-01'), format = "%Y-%m-%d")
     }
 
@@ -366,7 +377,7 @@ output$uisB_query <- renderUI({
 
     return(data.datatable)
 
-  })
+  }, options = list(pageLength = 10))
     
 }
 
