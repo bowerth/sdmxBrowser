@@ -141,16 +141,6 @@ server <- function(input, output) {
                 multiple = FALSE)
 })
 
-  output$uisB_provider <- renderUI({
-    ## ui.sdmxbrowser_provider <- getProviders()
-    ## ui.sdmxbrowser_provider
-    selectInput("sdmxbrowser_provider", "Provider:", ui.sdmxbrowser_provider,
-                ## selected = state_init_list("sdmxbrowser_provider","EUROSTAT", ui.sdmxbrowser_provider),
-                # selected = "OECD",
-                selected = "EUROSTAT",
-                multiple = FALSE)
-})
-
 output$uisB_flow <- renderUI({
 
     sdmxbrowser_provider <- input$sdmxbrowser_provider
