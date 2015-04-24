@@ -136,7 +136,8 @@ server <- function(input, output) {
   output$uisB_provider <- renderUI({
     ui.sdmxbrowser_provider <- getProviders()
     selectInput("sdmxbrowser_provider", "Provider:", ui.sdmxbrowser_provider,
-                selected = "EUROSTAT",
+                ## selected = "EUROSTAT",
+                selected = "ABS",
                 multiple = FALSE)
 })
 
@@ -159,7 +160,8 @@ output$uisB_flow <- renderUI({
     ui.sdmxbrowser_flow <- ui.sdmxBrowser.flows.list[[sdmxbrowser_provider]]
     selectInput("sdmxbrowser_flow", "Flow:", c("", ui.sdmxbrowser_flow),
                 ## selected = "", 
-                selected = "nama_nace64_c",  
+                ## selected = "nama_nace64_c",
+                selected = "LF",
                 multiple = FALSE)
 })
 ##
