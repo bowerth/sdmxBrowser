@@ -12,7 +12,7 @@ library(ISOweek)
 output <- NULL
 
 ui.sdmxBrowser.col <- c("#4F81BD", "#C0504D", "#9BBB59", "#8064A2", "#4BACC6", "#F79646")
-ui.sdmxBrowser.year <- c(1970, as.numeric(as.character((format(Sys.time(), "%Y")))) + 2)
+ui.sdmxBrowser.maxyear <- as.numeric(format(Sys.time(), "%Y"))
 
 ## create list with flows by provider
 ui.sdmxbrowser_provider <- getProviders()
@@ -39,50 +39,52 @@ sidebar <- dashboardSidebar(disable = TRUE,
       )
     )
 
-browseflows.input <- box(
-  width = 4,
-  title = "Controls",
-  wellPanel(
-    uiOutput("uisB_query"),
-    ## actionButton("sdmxbrowser_querySendButton", "Send query"),
-    ## shinysky::actionButton("sdmxbrowser_querySendButton", "Submit Query", styleclass="success",icon = NULL, size = "large", block = TRUE),
-    actionButton("sdmxbrowser_querySendButton", "Submit Query")
-    ## ,
-    ## helpText("Click button to retrieve values")
-    ## ,
-    ## downloadButton('download_sdmxBrowser', 'Download CSV')
-    ),
-  wellPanel(
-    h5("SDMX Query Builder"),
-    uiOutput("uisB_provider"),
-    uiOutput("uisB_flow"),
-    actionButton("sdmxbrowser_flow_updateButton", "Update Flows"),
-    wellPanel(
-      uiOutput("uisB_dimensions"),
-      uiOutput("uisB_dimensioncodes")
-      ),
-    sliderInput(inputId = "sdmxbrowser_yearStartEnd",
-                label = "Period:",
-                min = 1970,
-                max = 2015,
-                value = c(2000, 2012)
-                ,
-                sep = ""
-                ## pre = NULL,
-                ## post = NULL,
-                ## format = "#"
-                )
-    )
-  )
+browseflows.input <- column(width = 4,
+                            box(
+                              ## width = 4,
+                              width = NULL,
+                              title = "Controls",
+                              wellPanel(
+                                uiOutput("uisB_query"),
+                                ## actionButton("sdmxbrowser_querySendButton", "Send query"),
+                                ## shinysky::actionButton("sdmxbrowser_querySendButton", "Submit Query", styleclass="success",icon = NULL, size = "large", block = TRUE),
+                                actionButton("sdmxbrowser_querySendButton", "Submit Query")
+                                ## ,
+                                ## helpText("Click button to retrieve values")
+                                ## ,
+                                ## downloadButton('download_sdmxBrowser', 'Download CSV')
+                                ),
+                              wellPanel(
+                                h5("SDMX Query Builder"),
+                                uiOutput("uisB_provider"),
+                                uiOutput("uisB_flow"),
+                                actionButton("sdmxbrowser_flow_updateButton", "Update Flows"),
+                                wellPanel(
+                                  uiOutput("uisB_dimensions"),
+                                  uiOutput("uisB_dimensioncodes")
+                                  ),
+                                sliderInput(inputId = "sdmxbrowser_yearStartEnd",
+                                            label = "Period:",
+                                            min = 1970,
+                                            max = ui.sdmxBrowser.maxyear,
+                                            value = c(2000, ui.sdmxBrowser.maxyear)
+                                            ,
+                                            sep = ""
+                                            ## pre = NULL,
+                                            ## post = NULL,
+                                            ## format = "#"
+                                            )
+                                )
+                              )
+)
 
-
-browseflows.output <- box(width = 8,
-  verbatimTextOutput("summary1")
-  ,
-  dataTableOutput("table1")
-  ,
-  plotOutput("plot1", height = 350)
-  )
+browseflows.output <- column(width = 8,
+                             box(title = "Parameters", verbatimTextOutput("summary1"), width = NULL, collapsible = TRUE)
+                             ,
+                             box(title = "Time series plot", plotOutput("plot1", height = 350), width = NULL, collapsible = TRUE)
+                             ,
+                             box(title = "Data table", dataTableOutput("table1"), width = NULL, collapsible = TRUE)
+                             )
 
 body <- dashboardBody(
     tabItems(
