@@ -129,15 +129,15 @@ server <- function(input, output) {
       })
     }
   })
-
+  
   output$uisB_provider <- renderUI({
-#    ui.sdmxbrowser_provider <- getProviders()
+    #    ui.sdmxbrowser_provider <- getProviders()
     selectInput("sdmxbrowser_provider", "Provider:", ui.sdmxbrowser_provider,
                 ## selected = "EUROSTAT",
                 selected = "ABS",
                 multiple = FALSE)
   })
-
+  
   output$uisB_flow <- renderUI({
     sdmxbrowser_provider <- input$sdmxbrowser_provider
     if (input$sdmxbrowser_flow_updateButton != 0) {
@@ -151,13 +151,13 @@ server <- function(input, output) {
                 multiple = FALSE)
   })
   ##
-
+  
   .sdmxbrowser_dimensions_all <- reactive({
     sdmxbrowser_dimensions_all<- names(getDimensions(input$sdmxbrowser_provider,
                                                      input$sdmxbrowser_flow))
     return(sdmxbrowser_dimensions_all)
   })
-
+  
   output$uisB_dimensions <- renderUI({
     if (input$sdmxbrowser_flow=="") return()
     sdmxbrowser_dimensions_all <- .sdmxbrowser_dimensions_all()
@@ -166,7 +166,7 @@ server <- function(input, output) {
                 selected = sdmxbrowser_dimensions_all,
                 multiple = TRUE, selectize = FALSE)
   })
-
+  
   .sdmxbrowser_dimensioncodes <- reactive({
     sdmxbrowser_dimensions <- input$sdmxbrowser_dimensions
     sdmxbrowser_dimensioncodes <- as.list(sdmxbrowser_dimensions)
@@ -174,7 +174,7 @@ server <- function(input, output) {
     names(sdmxbrowser_dimensioncodes) <- sdmxbrowser_dimensions
     return(sdmxbrowser_dimensioncodes)
   })
-
+  
   output$uisB_dimensioncodes <- renderUI({
     sdmxbrowser_provider <- input$sdmxbrowser_provider
     sdmxbrowser_flow <- input$sdmxbrowser_flow
@@ -202,7 +202,7 @@ server <- function(input, output) {
       return(h5("Please select data flow and submit query"))
     }
   })
-
+  
   output$uisB_query <- renderUI({
     sdmxbrowser_flow <- input$sdmxbrowser_flow
     sdmxbrowser_dimensions <- input$sdmxbrowser_dimensions # selected dimensions
@@ -228,15 +228,15 @@ server <- function(input, output) {
       return(h5("Please select data flow and submit query"))
     }
   })
-
+  
   yearStart <- reactive({
     as.character(input$sdmxbrowser_yearStartEnd[1])
   })
-
+  
   yearEnd <- reactive({
     as.character(input$sdmxbrowser_yearStartEnd[2])
   })
-
+  
   output$summary1 <- renderPrint({
     sdmxbrowser_provider = input$sdmxbrowser_provider
     sdmxbrowser_flow = input$sdmxbrowser_flow
@@ -256,7 +256,7 @@ server <- function(input, output) {
                    sep = '\n')
     return(cat(blurb))
   })
-
+  
   queryData <- reactive({
     if(input$sdmxbrowser_querySendButton == 0) {
       isolate({
@@ -275,49 +275,49 @@ server <- function(input, output) {
     }
     return(queryData)
   })
-
+  
   queryDataFreq <- reactive({
     ## frequency(queryData()[[1]])
     attr(queryData()[[1]], "FREQ")
   })
-
-queryDataMelt <- reactive({
-  queryDataMelt = lapply(queryData(), changeDates)
-  queryDataMelt <- sdmxdf(queryDataMelt)
-  colnames(queryDataMelt) <- c('variable', 'time', 'value')
-  return(queryDataMelt)
-})
-
-changeDates <- function(tts){
-  freq = attr(tts, 'FREQ')
-  if(is.null(freq)){
-    freq = attr(tts, 'FREQUENCY')
-  }
-  if(!is.null(freq)){
-    idx = index(tts)
-    if(freq == 'A'){
-      idx = paste0(idx, '-01-01')
+  
+  queryDataMelt <- reactive({
+    queryDataMelt = lapply(queryData(), changeDates)
+    queryDataMelt <- sdmxdf(queryDataMelt)
+    colnames(queryDataMelt) <- c('variable', 'time', 'value')
+    return(queryDataMelt)
+  })
+  
+  changeDates <- function(tts){
+    freq = attr(tts, 'FREQ')
+    if(is.null(freq)){
+      freq = attr(tts, 'FREQUENCY')
     }
-    else if(freq == 'S' || freq == 'H'){
-      idx = gsub(pattern='-S1', replacement='-01-01', x=idx)
-      idx = gsub(pattern='-S2', replacement='-07-01', x=idx)
+    if(!is.null(freq)){
+      idx = index(tts)
+      if(freq == 'A'){
+        idx = paste0(idx, '-01-01')
+      }
+      else if(freq == 'S' || freq == 'H'){
+        idx = gsub(pattern='-S1', replacement='-01-01', x=idx)
+        idx = gsub(pattern='-S2', replacement='-07-01', x=idx)
+      }
+      else if(freq == 'W'){
+        idx = as.Date(idx, format='%Y-W%U')
+      }
+      index(tts) <- as.Date(idx)
     }
-    else if(freq == 'W'){
-      idx = as.Date(idx, format='%Y-W%U')
+    else{
+      #try straight as.Date anyway
+      index(tts) = tryCatch({
+        as.Date(index(tts))
+      }, error = function(e) {
+        stop('Unrecognized time format and no frequency. Unable to convert to Date.')
+      })
     }
-    index(tts) <- as.Date(idx)
+    return(tts)
   }
-  else{
-    #try straight as.Date anyway
-    index(tts) = tryCatch({
-      as.Date(index(tts))
-    }, error = function(e) {
-      stop('Unrecognized time format and no frequency. Unable to convert to Date.')
-    })
-  }
-  return(tts)
-}
-
+  
   output$plot1 <- renderPlot({
     if (input$sdmxbrowser_querySendButton==0) return()
     sdmxbrowser_flow = input$sdmxbrowser_flow
