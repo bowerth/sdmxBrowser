@@ -1,0 +1,356 @@
+observe({
+  if (is.null(input$sdmxbrowser_flow_updateButton) || input$sdmxbrowser_flow_updateButton == 0) {
+    return()
+  } else {
+    isolate({
+      load(file.path("data_init", "sdmxBrowser.rda"))
+      ## provider <- "EUROSTAT"
+      provider <- input$sdmxbrowser_provider
+      flows <- getFlows(provider)
+      flows <- sort(names(flows))
+      ## flows <- list(flows)
+      ## names(flows) <- provider
+      ui.sdmxBrowser.flows.list[[provider]] <- flows
+      ## length(ui.sdmxBrowser.flows.list[["EUROSTAT"]])
+      save(ui.sdmxBrowser.flows.list, file = "data_init/sdmxBrowser.rda")
+      print("saved flow information")
+    })
+  }
+})
+
+output$uisB_provider <- renderUI({
+  ui.sdmxbrowser_provider <- getProviders()
+  selectInput("sdmxbrowser_provider", "Provider:", ui.sdmxbrowser_provider,
+              ## selected = "EUROSTAT",
+              selected = "ABS",
+              multiple = FALSE)
+})
+
+output$uisB_flow <- renderUI({
+
+  sdmxbrowser_provider <- input$sdmxbrowser_provider
+  if (input$sdmxbrowser_flow_updateButton != 0) {
+    load("data_init/sdmxBrowser.rda")
+  }
+  ui.sdmxbrowser_flow <- ui.sdmxBrowser.flows.list[[sdmxbrowser_provider]]
+  selectInput("sdmxbrowser_flow", "Flow:", c("", ui.sdmxbrowser_flow),
+              ## selected = "",
+              ## selected = "nama_nace64_c",
+              selected = "LF",
+              multiple = FALSE)
+})
+##
+.sdmxbrowser_dimensions_all <- reactive({
+  sdmxbrowser_dimensions_all<- names(getDimensions(input$sdmxbrowser_provider,
+                                                   input$sdmxbrowser_flow))
+  return(sdmxbrowser_dimensions_all)
+})
+
+output$uisB_dimensions <- renderUI({
+
+  if (input$sdmxbrowser_flow=="") return()
+
+  sdmxbrowser_dimensions_all <- .sdmxbrowser_dimensions_all()
+  selectInput("sdmxbrowser_dimensions", "Filter Dimensions:", sdmxbrowser_dimensions_all,
+              ## selected = state_multvar("sdmxbrowser_dimensions", sdmxbrowser_dimensions_all),
+              selected = sdmxbrowser_dimensions_all,
+              multiple = TRUE, selectize = FALSE)
+})
+
+.sdmxbrowser_dimensioncodes <- reactive({
+  sdmxbrowser_dimensions <- input$sdmxbrowser_dimensions
+  sdmxbrowser_dimensioncodes <- as.list(sdmxbrowser_dimensions)
+  sdmxbrowser_dimensioncodes <- sapply(sdmxbrowser_dimensioncodes,function(x) NULL)
+  names(sdmxbrowser_dimensioncodes) <- sdmxbrowser_dimensions
+  return(sdmxbrowser_dimensioncodes)
+})
+
+output$uisB_dimensioncodes <- renderUI({
+  sdmxbrowser_provider <- input$sdmxbrowser_provider
+  sdmxbrowser_flow <- input$sdmxbrowser_flow
+  sdmxbrowser_dimensions <- input$sdmxbrowser_dimensions
+
+  if (sdmxbrowser_flow!="") {
+
+    sdmxbrowser_dimensioncodes <- .sdmxbrowser_dimensioncodes()
+    command.all <- NULL
+    for (d in seq(along = sdmxbrowser_dimensions)) {
+      ## get all codes
+      sdmxbrowser_dimensioncodes[[d]] <- names(getCodes(sdmxbrowser_provider,
+                                                        sdmxbrowser_flow,
+                                                        sdmxbrowser_dimensions[d]))
+
+      sdmxbrowser_dimensioncodes[[d]] <- sort(sdmxbrowser_dimensioncodes[[d]])
+
+      command <- paste0('selectInput("sdmxbrowser_dimensioncodes_', d,
+                        '", "Select ', sdmxbrowser_dimensions[d],
+                        ':", c("',
+                        gsub(', ', '", "', toString(sdmxbrowser_dimensioncodes[[d]]))
+                        ,
+                        '"), selected = "', sdmxbrowser_dimensioncodes[[d]][1], '", multiple = TRUE, selectize = TRUE)')
+      command.all <- paste(command.all, command, sep = ",")
+    }
+    command.all <- sub(",", "", command.all)
+    eval(parse(text = paste0('list(', command.all, ')')))
+
+  } else {
+    return(h5("Please select data flow and submit query"))
+  }
+
+})
+
+output$uisB_query <- renderUI({
+  sdmxbrowser_flow <- input$sdmxbrowser_flow
+  sdmxbrowser_dimensions <- input$sdmxbrowser_dimensions # selected dimensions
+
+  if (sdmxbrowser_flow!="") {
+
+    sdmxbrowser_dimensioncodes <- .sdmxbrowser_dimensioncodes()
+    for (d in seq(along = sdmxbrowser_dimensions)) {
+      eval(parse(text = paste0('sdmxbrowser_dimensioncodes[[', d, ']] <- input$sdmxbrowser_dimensioncodes_', d)))
+    }
+    sdmxbrowser_dimensions_all<- .sdmxbrowser_dimensions_all()
+    dimequal <- match(sdmxbrowser_dimensions_all, sdmxbrowser_dimensions)
+    query <- sdmxbrowser_flow
+    for (d in seq(along = dimequal)) {
+      if (is.na(dimequal[d])) {
+        query.part <- "*"
+      } else {
+        query.part <- gsub(", ", "+", toString(sdmxbrowser_dimensioncodes[[dimequal[d]]]))
+      }
+      query <- paste(query, query.part, sep = ".")
+    }
+    textInput("sdmxbrowser_query", "SDMX Query:",
+              query)
+
+  } else {
+    return(h5("Please select data flow and submit query"))
+  }
+
+})
+yearStart <- reactive({
+  as.character(input$sdmxbrowser_yearStartEnd[1])
+})
+yearEnd <- reactive({
+  as.character(input$sdmxbrowser_yearStartEnd[2])
+})
+
+output$summary1 <- renderPrint({
+  sdmxbrowser_provider = input$sdmxbrowser_provider
+  sdmxbrowser_flow = input$sdmxbrowser_flow
+  sdmxbrowser_dimensions_all = .sdmxbrowser_dimensions_all()
+  sdmxbrowser_query = input$sdmxbrowser_query
+  ## yearStart <- as.character(input$sdmxbrowser_yearStartEnd[1])
+  ## yearEnd <- as.character(input$sdmxbrowser_yearStartEnd[2])
+
+  ## queryData <- result$queryData
+
+  if (sdmxbrowser_flow=="") return(cat("Please select data flow and submit query"))
+
+  blurb <- paste(paste('Provider =', sdmxbrowser_provider),
+                 paste('Flow =', sdmxbrowser_flow),
+                 paste('Dimensions =', toString(sdmxbrowser_dimensions_all)),
+                 paste('Query =', sdmxbrowser_query),
+                 paste('Start =', yearStart()),
+                 paste('End =', yearEnd()),
+                 ## paste('Frequency =', queryDataFreq()),
+                 sep = '\n')
+
+  return(cat(blurb))
+
+})
+
+queryData <- reactive({
+  if(input$sdmxbrowser_querySendButton == 0) {
+    isolate({
+      queryData <- getSDMX(input$sdmxbrowser_provider,
+                           input$sdmxbrowser_query,
+                           start = yearStart(),
+                           end = yearEnd())
+    })
+  } else {
+    isolate({
+      queryData <- getSDMX(input$sdmxbrowser_provider,
+                           input$sdmxbrowser_query,
+                           start = yearStart(),
+                           end = yearEnd())
+    })
+  }
+  return(queryData)
+})
+
+queryDataFreq <- reactive({
+  ## frequency(queryData()[[1]])
+  attr(queryData()[[1]], "FREQ")
+})
+
+
+
+## queryDataMelt <- reactive({
+##   queryDataMelt <- as.data.frame(queryData())
+##   queryDataMelt <- data.frame(time = rownames(queryDataMelt), queryDataMelt)
+##   queryDataMelt <- suppressWarnings(melt(queryDataMelt, id.vars = "time"))
+##   return(queryDataMelt)
+## })
+
+queryDataMelt <- reactive({
+    queryDataMelt = lapply(queryData(), changeDates)
+    queryDataMelt <- sdmxdf(queryDataMelt)
+    ## colnames(queryDataMelt) <- c('variable', 'time', 'value')
+    ## ILO: additional column "STATUS"
+    names(queryDataMelt) <- tolower(names(queryDataMelt))
+    names(queryDataMelt) <- sub("id", "variable", names(queryDataMelt))
+    names(queryDataMelt) <- sub("obs", "value", names(queryDataMelt))
+    queryDataMelt$time <- as.Date(queryDataMelt$time)
+    return(queryDataMelt)
+  })
+
+  changeDates <- function(tts){
+    freq = attr(tts, 'FREQ')
+    if(is.null(freq)){
+      freq = attr(tts, 'FREQUENCY')
+    }
+    if(!is.null(freq)){
+      idx = index(tts)
+      if(freq == 'A'){
+        idx = paste0(idx, '-01-01')
+      }
+      else if(freq == 'S' || freq == 'H'){
+        idx = gsub(pattern='-S1', replacement='-01-01', x=idx)
+        idx = gsub(pattern='-S2', replacement='-07-01', x=idx)
+      }
+      else if(freq == 'W'){
+        idx = as.Date(idx, format='%Y-W%U')
+      }
+      index(tts) <- as.Date(idx)
+    }
+    else{
+      #try straight as.Date anyway
+      index(tts) = tryCatch({
+        as.Date(index(tts))
+      }, error = function(e) {
+        stop('Unrecognized time format and no frequency. Unable to convert to Date.')
+      })
+    }
+    return(tts)
+  }
+
+  output$plot1 <- renderPlot({
+    if (input$sdmxbrowser_querySendButton==0) return()
+
+    sdmxbrowser_flow = input$sdmxbrowser_flow
+    sdmxbrowser_query <- input$sdmxbrowser_query
+    sdmxbrowser_yearStart <- yearStart()
+    sdmxbrowser_yearEnd <- yearEnd()
+
+    queryDataMelt <- queryDataMelt()
+
+    ## if (queryDataFreq=="W") {
+  ##   ## see https://github.com/bowerth/sdmxBrowser/issues/2
+  ##   ## Handling dates in form YYYY-WW
+  ##   data.plots$time <- ISOweek2date(paste0(data.plots$time, "-1"))
+  ##   ## } else if (queryDataFreq==12) {
+  ## } else if (queryDataFreq=="M") {
+  ##   ## data.plots$time <- as.Date(as.yearmon(data.plots$time, format = "%b %Y"))
+  ##   ## } else if (queryDataFreq==4) {
+  ## } else if (queryDataFreq=="Q") {
+  ##   data.plots$time <- as.Date(as.yearqtr(data.plots$time))
+  ##   ## } else if (queryDataFreq==1) {
+  ## } else if (queryDataFreq=="A") {
+  ##   data.plots$time <- as.Date(paste0(data.plots$time, '-01-01'), format = "%Y-%m-%d")
+  ## }
+
+    if (sdmxbrowser_flow=="") return()
+
+    ncol <- length(unique(data.plots$variable))
+    color.fill <- colorRampPalette(ui.sdmxBrowser.col)(ncol)
+
+    p1 <- ggplot(data = queryDataMelt, aes(x = time, y = value, group = variable)) +
+      geom_line(aes(color = variable)) +
+      ylab(label = NULL) +
+      xlab(label = NULL) +
+      scale_colour_manual(values = color.fill) +
+      theme_bw() +
+      theme(legend.position = "bottom",
+            ## legend.box = "vertical"
+            legend.direction = "vertical"
+      ) ## +
+
+    ## ggtitle(label = paste(sdmxbrowser_query, "Start:", min(data.plots$time), "End:", max(data.plots$time)))
+    ## print(p1)
+    return(p1)
+  })
+
+
+output$plot2 <- renderDygraph({
+
+    ## require(dygraphs)
+    ## require(xts)
+    ## require(reshape2)
+    ## data(sample_matrix)
+    ## rownames(sample_matrix)
+
+    queryDataMelt <- queryDataMelt()
+
+    data.d <- dcast(queryDataMelt, time ~ variable, value.var = "value", drop = FALSE)
+    ## h(data.d)
+
+    ## data.d$Year <- as.numeric(as.character(data.d$Year))
+    ## data.d$Year <- paste0(data.d$Year, '-01-01')
+
+    rownames(data.d) <- data.d$time
+    ## data.d <- data.d[, colnames(data.d)!="time"]
+    data.d <- subset(data.d, select = names(data.d)[!names(data.d)=="time"])
+
+    data.d.xts <- as.xts(data.d, dateFormat = 'Date')
+
+    d1 <- dygraph(data.d.xts)
+    ## d1
+    return(d1)
+
+})
+
+
+output$table1 <- renderDataTable({
+
+  if (input$sdmxbrowser_querySendButton==0) return(data.frame(INFO = "Please select data flow and submit query"))
+
+  ## sdmxbrowser_dimensions_all = .sdmxbrowser_dimensions_all()
+  ## queryDataMelt <- queryDataMelt()
+  ## data.datatable <- queryDataMelt
+  ## X <- strsplit(as.character(data.datatable$variable), split = "[.]")
+  ## for (d in (seq(along = sdmxbrowser_dimensions_all)+1)) { # first item is flow id, d starting from 2
+  ##   data.datatable[[sdmxbrowser_dimensions_all[d-1]]] <- sapply(X, '[[', d)
+  ## }
+  ## data.datatable <- data.datatable[,!colnames(data.datatable)=="variable"]
+  data.datatable <- splitvariable(data = queryDataMelt(),
+                                  dimensions = .sdmxbrowser_dimensions_all())
+
+  return(data.datatable)
+
+}, options = list(pageLength = 10))
+
+splitvariable <- function(data,
+                          dimensions) {
+  X <- strsplit(as.character(data[["variable"]]), split = "[.]")
+
+  for (d in (seq(along = dimensions)+1)) { # first item is flow id, d starting from 2
+    data[[dimensions[d-1]]] <- sapply(X, '[[', d)
+  }
+  data <- data[,!colnames(data)=="variable"]
+  return(data)
+}
+
+output$sdmxbrowser_download1 <- downloadHandler(
+    filename = function() {
+        paste0(input$sdmxbrowser_provider,
+               '_',
+               input$sdmxbrowser_flow,
+               '.csv')
+    },
+    content = function(file) {
+        data.download <- splitvariable(data = queryDataMelt(),
+                                  dimensions = .sdmxbrowser_dimensions_all())
+        write.csv(data.download, file, row.names = FALSE)
+    }
+)
