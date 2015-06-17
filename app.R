@@ -18,22 +18,21 @@ library(ggplot2)
 library(xts)
 library(dygraphs)
 
+
 input <- NULL
 output <- NULL
-
 ui.sdmxBrowser.col <- c("#4F81BD", "#C0504D", "#9BBB59", "#8064A2", "#4BACC6", "#F79646")
 ui.sdmxBrowser.maxyear <- as.numeric(format(Sys.time(), "%Y"))
-
 ## create list with flows by provider
 ui.sdmxbrowser_provider <- getProviders()
 ## remove providers known to have issues
-ui.sdmxbrowser_provider <- ui.sdmxbrowser_provider[!ui.sdmxbrowser_provider%in%c("OECD", "OECD_RESTR", "NBB", "ISTAT")]
-ui.sdmxbrowser_provider <- ui.sdmxbrowser_provider[!ui.sdmxbrowser_provider%in%c("ILO", "BIS", "WB")]
+ui.sdmxbrowser_provider <- ui.sdmxbrowser_provider[!ui.sdmxbrowser_provider%in%c("OECD_RESTR", "NBB", "ISTAT")]
+#ui.sdmxbrowser_provider <- ui.sdmxbrowser_provider[!ui.sdmxbrowser_provider%in%c("ILO", "BIS", "WB")]
 
 .sdmxbrowser_dimensions_all <- reactive({
-    sdmxbrowser_dimensions_all<- names(getDimensions(input$sdmxbrowser_provider,
-                                                     input$sdmxbrowser_flow))
-    return(sdmxbrowser_dimensions_all)
+  sdmxbrowser_dimensions_all<- names(getDimensions(input$sdmxbrowser_provider,
+                                                   input$sdmxbrowser_flow))
+  return(sdmxbrowser_dimensions_all)
 })
 
 ## flow list
@@ -73,14 +72,17 @@ body <- dashboardBody(
     #           )
     #         )
     )
-
+    ## ,
+    ## tabItem(tabName = "widgets",
+    ## h2("Widgets tab content")
+    ## )
   )
 
 ui <- dashboardPage(
   header,
   sidebar,
   body
-  )
+)
 
 server <- function(input, output) {
 
