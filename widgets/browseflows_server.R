@@ -23,6 +23,7 @@ output$uisB_provider <- renderUI({
   selectInput("sdmxbrowser_provider", "Provider:", ui.sdmxbrowser_provider,
               ## selected = "EUROSTAT",
               selected = "ABS",
+              selectize = FALSE, # new
               multiple = FALSE)
 })
 
@@ -37,6 +38,7 @@ output$uisB_flow <- renderUI({
               ## selected = "",
               ## selected = "nama_nace64_c",
               selected = "LF",
+              selectize = FALSE, # new
               multiple = FALSE)
 })
 ##
@@ -54,7 +56,9 @@ output$uisB_dimensions <- renderUI({
   selectInput("sdmxbrowser_dimensions", "Filter Dimensions:", sdmxbrowser_dimensions_all,
               ## selected = state_multvar("sdmxbrowser_dimensions", sdmxbrowser_dimensions_all),
               selected = sdmxbrowser_dimensions_all,
-              multiple = TRUE, selectize = FALSE)
+              selectize = FALSE,
+              multiple = TRUE
+              )
 })
 
 .sdmxbrowser_dimensioncodes <- reactive({
@@ -87,7 +91,7 @@ output$uisB_dimensioncodes <- renderUI({
                         ':", c("',
                         gsub(', ', '", "', toString(sdmxbrowser_dimensioncodes[[d]]))
                         ,
-                        '"), selected = "', sdmxbrowser_dimensioncodes[[d]][1], '", multiple = TRUE, selectize = TRUE)')
+                        '"), selected = "', sdmxbrowser_dimensioncodes[[d]][1], '", multiple = TRUE, selectize = FALSE)') # new selectize = TRUE
       command.all <- paste(command.all, command, sep = ",")
     }
     command.all <- sub(",", "", command.all)
@@ -243,7 +247,7 @@ queryDataMelt <- reactive({
     sdmxbrowser_yearStart <- yearStart()
     sdmxbrowser_yearEnd <- yearEnd()
 
-    queryDataMelt <- queryDataMelt()
+    data.plots <- queryDataMelt()
 
     ## if (queryDataFreq=="W") {
   ##   ## see https://github.com/bowerth/sdmxBrowser/issues/2
@@ -265,7 +269,8 @@ queryDataMelt <- reactive({
     ncol <- length(unique(data.plots$variable))
     color.fill <- colorRampPalette(ui.sdmxBrowser.col)(ncol)
 
-    p1 <- ggplot(data = queryDataMelt, aes(x = time, y = value, group = variable)) +
+    ## p1 <- ggplot(data = data.plots, aes(x = time, y = value, group = variable)) +
+    p1 <- ggplot(data = data.plots, aes(x = time, y = value_value, group = variable)) +
       geom_line(aes(color = variable)) +
       ylab(label = NULL) +
       xlab(label = NULL) +
@@ -282,33 +287,33 @@ queryDataMelt <- reactive({
   })
 
 
-output$plot2 <- renderDygraph({
+## output$plot2 <- renderDygraph({
 
-    ## require(dygraphs)
-    ## require(xts)
-    ## require(reshape2)
-    ## data(sample_matrix)
-    ## rownames(sample_matrix)
+##     ## require(dygraphs)
+##     ## require(xts)
+##     ## require(reshape2)
+##     ## data(sample_matrix)
+##     ## rownames(sample_matrix)
 
-    queryDataMelt <- queryDataMelt()
+##     queryDataMelt <- queryDataMelt()
 
-    data.d <- dcast(queryDataMelt, time ~ variable, value.var = "value", drop = FALSE)
-    ## h(data.d)
+##     data.d <- dcast(queryDataMelt, time ~ variable, value.var = "value", drop = FALSE)
+##     ## h(data.d)
 
-    ## data.d$Year <- as.numeric(as.character(data.d$Year))
-    ## data.d$Year <- paste0(data.d$Year, '-01-01')
+##     ## data.d$Year <- as.numeric(as.character(data.d$Year))
+##     ## data.d$Year <- paste0(data.d$Year, '-01-01')
 
-    rownames(data.d) <- data.d$time
-    ## data.d <- data.d[, colnames(data.d)!="time"]
-    data.d <- subset(data.d, select = names(data.d)[!names(data.d)=="time"])
+##     rownames(data.d) <- data.d$time
+##     ## data.d <- data.d[, colnames(data.d)!="time"]
+##     data.d <- subset(data.d, select = names(data.d)[!names(data.d)=="time"])
 
-    data.d.xts <- as.xts(data.d, dateFormat = 'Date')
+##     data.d.xts <- as.xts(data.d, dateFormat = 'Date')
 
-    d1 <- dygraph(data.d.xts)
-    ## d1
-    return(d1)
+##     d1 <- dygraph(data.d.xts)
+##     ## d1
+##     return(d1)
 
-})
+## })
 
 
 output$table1 <- renderDataTable({

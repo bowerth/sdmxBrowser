@@ -1,3 +1,5 @@
+
+
 browseflows.input <- column(width = 4,
                             box(
                               ## width = 4,
@@ -43,9 +45,9 @@ browseflows.input <- column(width = 4,
 browseflows.output <- column(width = 8,
                              box(title = "Parameters", verbatimTextOutput("summary1"), width = NULL, collapsible = TRUE)
                              ,
-                             ## box(title = "Time series plot", plotOutput("plot1", height = 350), width = NULL, collapsible = TRUE)
-                             ## ,
-                             box(title = "Time series plot", dygraphOutput("plot2"), width = NULL, collapsible = TRUE)
+                             box(title = "Time series plot", plotOutput("plot1", height = 350), width = NULL, collapsible = TRUE)
                              ,
+                             ## box(title = "Time series plot", dygraphOutput("plot2"), width = NULL, collapsible = TRUE)
+                             ## ,
                              box(title = "Data table", dataTableOutput("table1"), width = NULL, collapsible = TRUE)
                              )

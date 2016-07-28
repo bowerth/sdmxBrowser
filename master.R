@@ -1,10 +1,17 @@
+## shiny::runApp(file.path(dbpath, "GitHub", "sdmxBrowser"), launch.browser = FALSE, port = 3838)
 ## source(file.path(dbpath, "GitHub", "sdmxBrowser", "master.R"))
+
 
 path <- file.path(dbpath, "GitHub", "sdmxBrowser")
 setwd(path)
 source("app.R")
 
 shinyApp(ui, server)
+
+## RJSDMX::getFlows("ABS")
+## if (Sys.getenv("JAVA_HOME")!="") Sys.setenv(JAVA_HOME="")
+## devtools::install_github("amattioc/SDMX", subdir = "RJSDMX")
+## devtools::install("amattioc/SDMX", subdir = "RJSDMX")
 
 ## Sample Queries
 ## ECB:
